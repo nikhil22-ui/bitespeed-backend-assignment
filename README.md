@@ -1,109 +1,184 @@
-# Bitespeed Backend Task -- Identity Reconciliation
+# 🧠 Bitespeed Identity Reconciliation API
 
-## Overview
+## 📌 Overview
 
-This project implements the Identity Reconciliation backend task.
+This project implements an **Identity Reconciliation API** that links customer contacts based on shared email and/or phone numbers.
 
-It exposes a POST `/identify` endpoint that links customer contacts
-based on email or phone number.\
-If multiple records belong to the same person, they are grouped under a
-single primary contact.
+The system ensures:
+- No duplicate primary contacts
+- Proper linking of secondary contacts
+- Merging of multiple primary records when needed
+- Clean and normalized data storage
 
-The implementation is built using:
+---
 
--   Node.js
--   TypeScript
--   Express
--   PostgreSQL (Docker)
+## 🎯 Objective
 
-------------------------------------------------------------------------
+When a user provides an email and/or phone number:
 
-## Setup Instructions
+- If no matching contact exists → create a new **Primary Contact**
+- If matching contact exists → link as **Secondary Contact**
+- If multiple primary contacts exist → merge them under the oldest primary
+- Return consolidated contact information
 
-### 1. Clone the repository
+---
 
-    git clone https://github.com/guts-718/bitespeed-assignment.git
-    cd bitespeed_assignment
+## 🛠️ Tech Stack
 
-### 2. Install dependencies
+- **Backend:** Node.js + Express.js  
+- **Language:** TypeScript  
+- **Database:** PostgreSQL  
+- **Driver:** pg (node-postgres)  
+- **Environment Management:** dotenv  
+- **Containerization:** Docker & Docker Compose  
 
-    npm install
+---
 
-### 3. Start PostgreSQL using Docker
+## 📂 Project Structure
 
-    docker run --name bitespeed-postgres ^
-      -e POSTGRES_USER=postgres ^
-      -e POSTGRES_PASSWORD=postgres ^
-      -e POSTGRES_DB=bitespeed ^
-      -p 5432:5432 ^
-      -d postgres
+```bash
+bitespeed-assignment-main
+│
+├── src
+│   ├── server.ts
+│   ├── db
+│   │   └── index.ts
+│   └── routes
+│       └── identify.ts
+│
+├── Dockerfile
+├── docker-compose.yml
+├── package.json
+└── tsconfig.json
+```
 
-### 4. Configure environment variables
+---
 
-Create a `.env` file in the root:
+## 🔍 API Endpoint
 
-    PORT=3000
-    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/bitespeed
+### POST `/identify`
 
-### 5. Run the server
+### Request Body
 
-    npm run dev
+```json
+{
+  "email": "user@example.com",
+  "phoneNumber": "1234567890"
+}
+```
 
-The server will automatically create the required table on startup.
+### Response Format
 
-------------------------------------------------------------------------
+```json
+{
+  "contact": {
+    "primaryContactId": 1,
+    "emails": ["user@example.com"],
+    "phoneNumbers": ["1234567890"],
+    "secondaryContactIds": [2, 3]
+  }
+}
+```
 
-## API
+---
 
-### POST /identify
+## 🗄️ Database Schema (Contact Table)
 
-Request body:
+| Column | Type | Description |
+|--------|------|-------------|
+| id | integer | Primary key |
+| email | varchar | Email address |
+| phoneNumber | varchar | Phone number |
+| linkedId | integer | Links to primary contact |
+| linkPrecedence | primary/secondary | Contact type |
+| createdAt | timestamp | Record creation time |
+| updatedAt | timestamp | Last update time |
+| deletedAt | timestamp | Soft delete field |
 
-    {
-      "email": "string (optional)",
-      "phoneNumber": "string (optional)"
-    }
+---
 
-At least one field (email or phoneNumber) is required.
+## 🚀 How to Run Locally
 
-Response:
+### 1️⃣ Install Dependencies
 
-    {
-      "contact": {
-        "primaryContactId": number,
-        "emails": string[],
-        "phoneNumbers": string[],
-        "secondaryContactIds": number[]
-      }
-    }
+```bash
+npm install
+```
 
-------------------------------------------------------------------------
+### 2️⃣ Setup Environment Variables
 
-## Logic Summary
+Create a `.env` file:
 
--   If no existing contact matches → create a new primary contact.
--   If matching contacts exist → link them under the oldest primary.
--   If multiple primaries are discovered → merge them.
--   Duplicate combinations are prevented using a database unique index.
--   All operations are executed inside a database transaction to prevent
-    race conditions.
+```env
+PORT=3000
+DB_HOST=localhost
+DB_USER=postgres
+DB_PASSWORD=yourpassword
+DB_NAME=bitespeed
+DB_PORT=5432
+```
 
-------------------------------------------------------------------------
+### 3️⃣ Run Development Server
 
-## Testing
+```bash
+npm run dev
+```
 
-You can test the endpoint using Postman or curl:
+Server runs at:
 
-    curl -X POST http://localhost:3000/identify ^
-      -H "Content-Type: application/json" ^
-      -d "{"email":"test@example.com","phoneNumber":"123"}"
+```
+http://localhost:3000
+```
 
-------------------------------------------------------------------------
+---
 
-## Notes
+## 🐳 Run Using Docker
 
--   Email matching is case-insensitive.
--   Phone numbers are normalized to digits only.
--   The solution is concurrency safe using transactions.
--   No records are deleted; linking is maintained using linkedId and
-    linkPrecedence.
+```bash
+docker-compose up --build
+```
+
+This will:
+- Build the Node container  
+- Start PostgreSQL  
+- Run the backend service  
+
+---
+
+## 🧪 Testing the API
+
+Using curl:
+
+```bash
+curl -X POST http://localhost:3000/identify \
+-H "Content-Type: application/json" \
+-d '{"email":"test@example.com","phoneNumber":"1234567890"}'
+```
+
+---
+
+## 📊 Key Features
+
+✔ Identity reconciliation  
+✔ Primary-secondary linking  
+✔ Automatic merging of primary contacts  
+✔ Duplicate prevention  
+✔ Transaction-safe database operations  
+✔ Dockerized setup  
+
+---
+
+## 📈 Future Improvements
+
+- Add unit testing (Jest)  
+- Add request validation (Zod / Joi)  
+- Add API documentation (Swagger)  
+- Deploy to cloud (AWS / Render / Railway)  
+
+---
+
+## 👤 Author
+
+**Nikhil Kumar**  
+B.Tech Computer Science & Engineering  
+Backend Developer
